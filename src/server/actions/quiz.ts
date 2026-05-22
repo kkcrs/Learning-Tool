@@ -48,7 +48,22 @@ export async function startQuiz(formData: FormData) {
       subjectName: subject.name,
       questions,
     };
-  } catch {
+  } catch (e) {
+    console.error("[startQuiz] generateQuestions failed:", e);
+    const msg = e instanceof Error ? e.message : "";
+    if (msg.includes("DEEPSEEK_API_KEY")) {
+      return {
+        error: "未配置 AI 密钥，请在项目根目录 .env 中设置 DEEPSEEK_API_KEY",
+      };
+    }
+    if (msg.includes("401") || msg.toLowerCase().includes("authentication")) {
+      return { error: "AI 密钥无效，请检查 DEEPSEEK_API_KEY" };
+    }
+    if (msg.includes("model") || msg.includes("404")) {
+      return {
+        error: `AI 模型不可用，请检查 .env 中 DEEPSEEK_MODEL（当前：${process.env.DEEPSEEK_MODEL ?? "deepseek-chat"}）`,
+      };
+    }
     return { error: "AI 出题失败，请稍后重试" };
   }
 }

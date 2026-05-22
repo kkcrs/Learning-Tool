@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { getStudyPlan } from "@/server/actions/plan";
+import { PlanAiSection } from "@/components/dashboard/PlanAiSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export async function PlanSection() {
@@ -33,6 +35,16 @@ export async function PlanSection() {
           </Card>
         ))}
       </div>
+      <Suspense
+        fallback={
+          <div className="flex items-center gap-3 py-4">
+            <span className="loader-ring h-5 w-5 rounded-full border-2 border-transparent border-t-primary border-r-secondary" />
+            <p className="text-sm text-muted-foreground">AI 个性化计划生成中…</p>
+          </div>
+        }
+      >
+        <PlanAiSection />
+      </Suspense>
     </>
   );
 }

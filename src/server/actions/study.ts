@@ -1,9 +1,12 @@
 "use server";
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getUserProfile } from "@/lib/auth";
 import { studySessionSchema } from "@/lib/validators";
+import { bilibiliSearchUrl, isAllowedVideoUrl } from "@/lib/web-search";
+import { findLearningVideo } from "@/server/ai/search-learning-video";
 import type { SubjectDistributionItem, WeeklyStudyItem } from "@/types";
 
 function startOfWeek(d: Date) {
@@ -40,7 +43,7 @@ export async function createStudySession(formData: FormData) {
   return { success: true };
 }
 
-export async function getWeeklyStudyStats(): Promise<WeeklyStudyItem[]> {
+export const getWeeklyStudyStats = cache(async (): Promise<WeeklyStudyItem[]> => {
   const { profile } = await getUserProfile();
   const monday = startOfWeek(new Date());
   const sessions = await prisma.studySession.findMany({
@@ -48,7 +51,11 @@ export async function getWeeklyStudyStats(): Promise<WeeklyStudyItem[]> {
       userId: profile.userId,
       date: { gte: monday },
     },
-    select: { date: true, durationMinutes: true },
+    select: {
+      date: true,
+      durationMinutes: true,
+      subject: { select: { name: true, icon: true } },
+    },
   });
 
   const days: WeeklyStudyItem[] = [];
@@ -57,17 +64,38 @@ export async function getWeeklyStudyStats(): Promise<WeeklyStudyItem[]> {
     d.setDate(monday.getDate() + i);
     const key = d.toISOString().slice(0, 10);
     const label = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][i];
-    const minutes = sessions
-      .filter((s) => s.date.toISOString().slice(0, 10) === key)
-      .reduce((sum, s) => sum + s.durationMinutes, 0);
-    days.push({ date: key, label, minutes });
+    const daySessions = sessions.filter(
+      (s) => s.date.toISOString().slice(0, 10) === key
+    );
+
+    const bySubject = new Map<
+      string,
+      { subjectName: string; icon: string; minutes: number }
+    >();
+    for (const s of daySessions) {
+      const name = s.subject.name;
+      const cur = bySubject.get(name) ?? {
+        subjectName: name,
+        icon: s.subject.icon,
+        minutes: 0,
+      };
+      cur.minutes += s.durationMinutes;
+      bySubject.set(name, cur);
+    }
+
+    const subjects = [...bySubject.values()].sort(
+      (a, b) => b.minutes - a.minutes
+    );
+    const minutes = subjects.reduce((sum, s) => sum + s.minutes, 0);
+
+    days.push({ date: key, label, minutes, subjects });
   }
   return days;
-}
+});
 
-export async function getSubjectDistribution(): Promise<
+export const getSubjectDistribution = cache(async (): Promise<
   SubjectDistributionItem[]
-> {
+> => {
   const { profile } = await getUserProfile();
   const grouped = await prisma.studySession.groupBy({
     by: ["subjectId"],
@@ -90,10 +118,10 @@ export async function getSubjectDistribution(): Promise<
       };
     })
     .filter(Boolean) as SubjectDistributionItem[];
-}
+});
 
 /** 科目列表页：只查科目与知识点数量，不加载整棵树 */
-export async function getSubjectList() {
+export const getSubjectList = cache(async () => {
   const { profile } = await getUserProfile();
   const grade = profile.grade;
 
@@ -119,7 +147,7 @@ export async function getSubjectList() {
     icon: s.icon,
     knowledgePointCount: s._count.knowledgePoints,
   }));
-}
+});
 
 /** 测验设置等需要知识点树时使用 */
 export async function getSubjectsWithPoints(grade?: number) {
@@ -137,7 +165,7 @@ export async function getSubjectsWithPoints(grade?: number) {
   return subjects;
 }
 
-export async function getRecentSessions(limit = 5) {
+export const getRecentSessions = cache(async (limit = 5) => {
   const { profile } = await getUserProfile();
   return prisma.studySession.findMany({
     where: { userId: profile.userId },
@@ -148,4 +176,49 @@ export async function getRecentSessions(limit = 5) {
       knowledgePoint: true,
     },
   });
+});
+
+/** 点击知识点：AI 联网搜索并返回第三方学习视频链接 */
+export async function openKnowledgePointVideo(params: {
+  subjectId: string;
+  knowledgePointId: string;
+}) {
+  const { profile } = await getUserProfile();
+
+  const kp = await prisma.knowledgePoint.findUnique({
+    where: { id: params.knowledgePointId },
+    include: {
+      subject: true,
+      parent: { select: { name: true } },
+    },
+  });
+
+  if (!kp || kp.subjectId !== params.subjectId) {
+    return { error: "知识点不存在" };
+  }
+
+  try {
+    const video = await findLearningVideo(
+      kp.subject.name,
+      kp.name,
+      kp.parent?.name,
+      profile.grade
+    );
+
+    let url = video.url;
+    if (!isAllowedVideoUrl(url)) {
+      const keyword = `${kp.subject.name} ${kp.parent?.name ?? ""} ${kp.name}`.trim();
+      url = bilibiliSearchUrl(keyword);
+    }
+
+    return {
+      success: true as const,
+      url,
+      title: video.title,
+      source: video.source,
+    };
+  } catch (e) {
+    console.error("[openKnowledgePointVideo]", e);
+    return { error: "搜索学习视频失败，请稍后重试" };
+  }
 }

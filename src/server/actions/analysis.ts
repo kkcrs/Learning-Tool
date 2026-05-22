@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { getUserProfile } from "@/lib/auth";
 import { analyzeWeaknessWithAi } from "@/server/ai/analyze-weakness";
@@ -8,7 +9,7 @@ import type { WeaknessItem } from "@/types";
 const groupKey = (subjectId: string, kpId: string | null) =>
   `${subjectId}:${kpId ?? "none"}`;
 
-export async function getWeaknessData(): Promise<WeaknessItem[]> {
+export const getWeaknessData = cache(async (): Promise<WeaknessItem[]> => {
   const { profile } = await getUserProfile();
 
   const attempts = await prisma.quizAttempt.findMany({
@@ -88,7 +89,7 @@ export async function getWeaknessData(): Promise<WeaknessItem[]> {
   });
 
   return items.sort((a, b) => a.avgScore - b.avgScore);
-}
+});
 
 export async function getWeaknessAiAdvice() {
   const { profile } = await getUserProfile();

@@ -5,10 +5,17 @@ export type QuizQuestion = {
   type: "single" | "multiple";
 };
 
+export type WeeklyStudySubjectItem = {
+  subjectName: string;
+  icon: string;
+  minutes: number;
+};
+
 export type WeeklyStudyItem = {
   date: string;
   label: string;
   minutes: number;
+  subjects: WeeklyStudySubjectItem[];
 };
 
 export type SubjectDistributionItem = {

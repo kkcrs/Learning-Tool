@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { createStudySession } from "@/server/actions/study";
+import { PageBackLink } from "@/components/layout/PageBackLink";
 import { StudyRecordForm } from "@/components/study/StudyRecordForm";
 
 export default async function StudyRecordPage({
@@ -37,6 +38,10 @@ export default async function StudyRecordPage({
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
+      <PageBackLink
+        href={`/study/${subject.id}`}
+        label={`返回${subject.name}`}
+      />
       <h1 className="text-2xl font-bold">
         {subject.icon} 记录学习 · {subject.name}
       </h1>

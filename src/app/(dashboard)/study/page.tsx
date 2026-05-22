@@ -8,7 +8,9 @@ export default async function StudyPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">选择科目</h1>
-      <p className="text-muted-foreground">选择科目后开始计时并记录学习内容</p>
+      <p className="text-muted-foreground">
+        选择科目后，点击知识点可打开 B 站学习视频；也可计时记录学习
+      </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {subjects.map((s) => (
           <Link key={s.id} href={`/study/${s.id}`}>

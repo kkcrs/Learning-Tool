@@ -1,9 +1,15 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import {
-  subjectSeeds,
+  fallbackCurriculum,
+  loadCachedCurriculum,
   type KnowledgePointSeed,
+  type SubjectSeed,
 } from "./seed-data";
+import {
+  generateAndSaveCurriculum,
+  generateGuangdongCurriculum,
+} from "./generate-curriculum";
 
 const prisma = new PrismaClient();
 
@@ -29,12 +35,49 @@ async function createKnowledgePoints(
   }
 }
 
-async function main() {
-  console.log("🌱 开始播种科目与知识点…");
+async function resolveCurriculum() {
+  const region = process.env.SEED_REGION?.trim() || "广东";
+  const forceRegenerate = process.env.SEED_FORCE_REGENERATE === "1";
+  const useCache = process.env.SEED_USE_CACHE !== "0";
 
-  // 仅清空知识点，保留科目及用户学习记录
+  if (!forceRegenerate && useCache) {
+    const cached = loadCachedCurriculum();
+    if (cached) {
+      console.log(`  使用缓存课程标准（${cached.region}）`);
+      return cached;
+    }
+  }
+
+  console.log(`  正在调用大模型生成【${region}】小学 8 科知识点…`);
+  console.log("  （依据义务教育课程标准及广东省教学安排，约需 30-60 秒）");
+
+  try {
+    if (process.env.SEED_SAVE_CACHE !== "0") {
+      return await generateAndSaveCurriculum(region);
+    }
+    return await generateGuangdongCurriculum(region);
+  } catch (e) {
+    console.warn("  ⚠ 大模型生成失败，使用最小兜底数据:", e);
+    return fallbackCurriculum;
+  }
+}
+
+async function main() {
+  console.log("🌱 开始播种科目与知识点（AI + 广东课程标准）…");
+
+  const curriculum = await resolveCurriculum();
+  const subjectSeeds = curriculum.subjects;
+
   const deleted = await prisma.knowledgePoint.deleteMany();
   console.log(`  已清除 ${deleted.count} 条旧知识点`);
+
+  const seedNames = new Set(subjectSeeds.map((s) => s.name));
+  const removed = await prisma.subject.deleteMany({
+    where: { name: { notIn: [...seedNames] } },
+  });
+  if (removed.count > 0) {
+    console.log(`  已移除 ${removed.count} 个不在课程标准内的旧科目`);
+  }
 
   for (const subjectSeed of subjectSeeds) {
     const subject = await prisma.subject.upsert({
@@ -55,7 +98,9 @@ async function main() {
   }
 
   const total = await prisma.knowledgePoint.count();
-  console.log(`\n✅ 播种完成，共 ${total} 个知识点`);
+  console.log(
+    `\n✅ 播种完成（${curriculum.region}），共 ${total} 个知识点，${subjectSeeds.length} 个科目`
+  );
 }
 
 main()

@@ -7,12 +7,12 @@ export default function PlanPage() {
       <h1 className="text-2xl font-bold">学习计划</h1>
       <Suspense
         fallback={
-          <div className="space-y-4 animate-pulse">
-            <div className="h-16 rounded-lg bg-muted" />
+          <div className="space-y-4">
+            <div className="skeleton-shimmer h-16 rounded-2xl" />
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="h-40 rounded-xl bg-muted" />
-              <div className="h-40 rounded-xl bg-muted" />
-              <div className="h-40 rounded-xl bg-muted" />
+              <div className="skeleton-shimmer h-40 rounded-2xl" />
+              <div className="skeleton-shimmer h-40 rounded-2xl" />
+              <div className="skeleton-shimmer h-40 rounded-2xl" />
             </div>
           </div>
         }

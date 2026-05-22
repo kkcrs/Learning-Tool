@@ -15,23 +15,28 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-56 shrink-0 border-r bg-card md:block">
+    <aside className="hidden w-56 shrink-0 border-r border-primary/10 bg-card/70 backdrop-blur-sm md:block">
       <nav className="flex flex-col gap-1 p-4">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            prefetch={link.href !== "/dashboard" && link.href !== "/plan"}
-            className={cn(
-              "rounded-lg px-3 py-2 text-sm transition-colors",
-              pathname === link.href || pathname.startsWith(link.href + "/")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {links.map((link) => {
+          const active =
+            pathname === link.href ||
+            pathname.startsWith(link.href + "/");
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              prefetch
+              className={cn(
+                "rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                active
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "text-foreground/80 hover:bg-primary/10 hover:text-primary"
+              )}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getQuizAttempt } from "@/server/actions/quiz";
 import { QuizResult } from "@/components/quiz/QuizResult";
+import { PageBackLink } from "@/components/layout/PageBackLink";
 import { Button } from "@/components/ui/button";
 
 export default async function QuizResultPage({
@@ -16,6 +17,7 @@ export default async function QuizResultPage({
 
   return (
     <div className="space-y-6">
+      <PageBackLink href="/quiz" label="返回 AI 自测" />
       <h1 className="text-2xl font-bold">
         {attempt.subject.icon} {attempt.subject.name} · 测验结果
       </h1>
