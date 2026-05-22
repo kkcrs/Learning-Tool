@@ -1,14 +1,17 @@
 "use client";
 
-import type { TooltipProps } from "recharts";
-
 const boxClass =
   "rounded-lg border bg-background px-3 py-2 text-sm shadow-md";
+
+type RechartsTooltipProps = {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: unknown }>;
+};
 
 export function WeeklyStudyTooltip({
   active,
   payload,
-}: TooltipProps<number, string>) {
+}: RechartsTooltipProps) {
   if (!active || !payload?.[0]) return null;
 
   const row = payload[0].payload as {
@@ -39,7 +42,7 @@ export function WeeklyStudyTooltip({
 export function SubjectDistributionTooltip({
   active,
   payload,
-}: TooltipProps<number, string>) {
+}: RechartsTooltipProps) {
   if (!active || !payload?.[0]) return null;
 
   const row = payload[0].payload as { name: string; value: number };

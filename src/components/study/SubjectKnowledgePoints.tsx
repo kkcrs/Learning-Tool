@@ -22,7 +22,7 @@ type SubjectKnowledgePointsProps = {
 function KnowledgePointCards({
   subjectId,
   knowledgePoints,
-}: SubjectKnowledgePointsProps) {
+}: Pick<SubjectKnowledgePointsProps, "subjectId" | "knowledgePoints">) {
   return (
     <div className="grid gap-3">
       {knowledgePoints.map((kp) => (

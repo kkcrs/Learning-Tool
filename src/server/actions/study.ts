@@ -117,7 +117,7 @@ export const getWeeklyStudyStats = cache(async (): Promise<WeeklyStudyItem[]> =>
       bySubject.set(name, cur);
     }
 
-    const subjects = [...bySubject.values()].sort(
+    const subjects = Array.from(bySubject.values()).sort(
       (a, b) => b.minutes - a.minutes
     );
     const minutes = subjects.reduce((sum, s) => sum + s.minutes, 0);

@@ -71,9 +71,9 @@ async function main() {
   const deleted = await prisma.knowledgePoint.deleteMany();
   console.log(`  已清除 ${deleted.count} 条旧知识点`);
 
-  const seedNames = new Set(subjectSeeds.map((s) => s.name));
+  const seedNames = subjectSeeds.map((s) => s.name);
   const removed = await prisma.subject.deleteMany({
-    where: { name: { notIn: [...seedNames] } },
+    where: { name: { notIn: seedNames } },
   });
   if (removed.count > 0) {
     console.log(`  已移除 ${removed.count} 个不在课程标准内的旧科目`);
