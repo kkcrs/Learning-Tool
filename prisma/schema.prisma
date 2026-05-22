@@ -1,0 +1,101 @@
+// Prisma schema for learning-tool (Supabase PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// 用户由 Supabase Auth 管理，这里只存扩展信息
+model UserProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid // Supabase Auth 用户 ID
+  name      String
+  grade     Int // 年级 1-6
+  avatar    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  studySessions StudySession[]
+  quizAttempts  QuizAttempt[]
+
+  @@map("user_profiles")
+}
+
+/// 全局科目（数学、语文、英语等），非用户自建
+model Subject {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+  icon String
+
+  knowledgePoints KnowledgePoint[]
+  studySessions   StudySession[]
+  quizAttempts    QuizAttempt[]
+
+  @@map("subjects")
+}
+
+/// 知识点，支持父子层级
+model KnowledgePoint {
+  id        String  @id @default(uuid()) @db.Uuid
+  subjectId String  @map("subject_id") @db.Uuid
+  name      String
+  grade     Int
+  parentId  String? @map("parent_id") @db.Uuid
+  order     Int     @default(0)
+
+  subject       Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  parent        KnowledgePoint?  @relation("KnowledgePointHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      KnowledgePoint[] @relation("KnowledgePointHierarchy")
+  studySessions StudySession[]
+  quizAttempts  QuizAttempt[]
+
+  @@index([subjectId])
+  @@index([parentId])
+  @@map("knowledge_points")
+}
+
+model StudySession {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  subjectId        String   @map("subject_id") @db.Uuid
+  knowledgePointId String?  @map("knowledge_point_id") @db.Uuid
+  durationMinutes  Int      @map("duration_minutes")
+  description      String?
+  date             DateTime @default(now())
+
+  user           UserProfile     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  subject        Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  knowledgePoint KnowledgePoint? @relation(fields: [knowledgePointId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([date])
+  @@map("study_sessions")
+}
+
+model QuizAttempt {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  subjectId        String   @map("subject_id") @db.Uuid
+  knowledgePointId String?  @map("knowledge_point_id") @db.Uuid
+  questions        Json
+  userAnswers      Json     @map("user_answers")
+  score            Int
+  total            Int
+  aiAnalysis       String?  @map("ai_analysis")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user           UserProfile     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  subject        Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  knowledgePoint KnowledgePoint? @relation(fields: [knowledgePointId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([createdAt])
+  @@map("quiz_attempts")
+}
