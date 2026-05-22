@@ -9,7 +9,7 @@ export default async function StudyRecordPage({
   searchParams,
 }: {
   params: { subjectId: string };
-  searchParams: { kp?: string };
+  searchParams: { kp?: string; autoStart?: string };
 }) {
   const subject = await prisma.subject.findUnique({
     where: { id: params.subjectId },
@@ -49,6 +49,7 @@ export default async function StudyRecordPage({
         subjectId={subject.id}
         knowledgePoints={points}
         defaultKpId={searchParams.kp}
+        autoStart={searchParams.autoStart === "1"}
         saveAction={saveSession}
       />
     </div>

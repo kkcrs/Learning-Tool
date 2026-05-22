@@ -2,6 +2,8 @@
 
 import { KnowledgePointLink } from "@/components/study/KnowledgePointLink";
 import { KnowledgePointVideoProvider } from "@/components/study/knowledge-point-video-context";
+import { StudyTimerProvider } from "@/components/study/study-timer-context";
+import { VideoStudyTimerBar } from "@/components/study/VideoStudyTimerBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type SubjectKnowledgePoint = {
@@ -12,6 +14,8 @@ export type SubjectKnowledgePoint = {
 
 type SubjectKnowledgePointsProps = {
   subjectId: string;
+  subjectName: string;
+  subjectIcon: string;
   knowledgePoints: SubjectKnowledgePoint[];
 };
 
@@ -55,10 +59,27 @@ function KnowledgePointCards({
   );
 }
 
-export function SubjectKnowledgePoints(props: SubjectKnowledgePointsProps) {
+export function SubjectKnowledgePoints({
+  subjectId,
+  subjectName,
+  subjectIcon,
+  knowledgePoints,
+}: SubjectKnowledgePointsProps) {
   return (
-    <KnowledgePointVideoProvider>
-      <KnowledgePointCards {...props} />
-    </KnowledgePointVideoProvider>
+    <StudyTimerProvider
+      subjectId={subjectId}
+      subjectName={subjectName}
+      subjectIcon={subjectIcon}
+    >
+      <KnowledgePointVideoProvider>
+        <div className="pb-28">
+          <KnowledgePointCards
+            subjectId={subjectId}
+            knowledgePoints={knowledgePoints}
+          />
+        </div>
+        <VideoStudyTimerBar />
+      </KnowledgePointVideoProvider>
+    </StudyTimerProvider>
   );
 }

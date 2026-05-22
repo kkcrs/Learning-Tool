@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 
 export function StudyTimer({
   onFinish,
+  autoStart = false,
 }: {
   onFinish: (minutes: number) => void;
+  autoStart?: boolean;
 }) {
   const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(autoStart);
 
   useEffect(() => {
     if (!running) return;

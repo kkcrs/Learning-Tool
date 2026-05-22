@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { openKnowledgePointVideo } from "@/server/actions/study";
 import { useKnowledgePointVideoSearch } from "@/components/study/knowledge-point-video-context";
+import { useStudyTimer } from "@/components/study/study-timer-context";
 import { cn } from "@/lib/utils";
 
 type KnowledgePointLinkProps = {
@@ -20,6 +21,7 @@ export function KnowledgePointLink({
   className,
 }: KnowledgePointLinkProps) {
   const { busyId, setBusyId } = useKnowledgePointVideoSearch();
+  const { startVideoStudy } = useStudyTimer();
   const [error, setError] = useState("");
 
   const loading = busyId === knowledgePointId;
@@ -37,6 +39,7 @@ export function KnowledgePointLink({
       });
 
       if (res.success && res.url) {
+        startVideoStudy({ knowledgePointId, knowledgePointName: name });
         window.open(res.url, "_blank", "noopener,noreferrer");
         return;
       }
@@ -48,7 +51,13 @@ export function KnowledgePointLink({
   }
 
   return (
-    <span className="inline-flex flex-col items-start gap-0.5">
+    <span
+      className={cn(
+        "inline-flex flex-col items-start gap-0.5",
+        disabled && !loading && "cursor-not-allowed",
+        loading && "cursor-wait"
+      )}
+    >
       <button
         type="button"
         onClick={handleClick}
@@ -56,13 +65,15 @@ export function KnowledgePointLink({
         title={
           disabled && !loading
             ? "正在搜索其他知识点视频，请稍候"
-            : "点击在 B 站搜索并打开该知识点的学习视频"
+            : loading
+              ? "正在搜索视频…"
+              : "点击在 B 站搜索并打开该知识点的学习视频"
         }
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-all",
           "hover:border-primary/40 hover:bg-primary/20 hover:shadow-sm",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          loading && "disabled:cursor-wait disabled:opacity-70",
+          "disabled:pointer-events-none disabled:opacity-50",
+          loading && "disabled:opacity-70",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}

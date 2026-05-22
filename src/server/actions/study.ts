@@ -43,6 +43,40 @@ export async function createStudySession(formData: FormData) {
   return { success: true };
 }
 
+/** 视频学习计时结束后保存（客户端计时条调用） */
+export async function saveTimedStudySession(input: {
+  subjectId: string;
+  knowledgePointId?: string;
+  durationMinutes: number;
+  description?: string;
+}) {
+  const { profile } = await getUserProfile();
+  const parsed = studySessionSchema.safeParse({
+    subjectId: input.subjectId,
+    knowledgePointId: input.knowledgePointId,
+    durationMinutes: input.durationMinutes,
+    description: input.description,
+  });
+
+  if (!parsed.success) {
+    return { error: "保存失败，请检查学习时长" };
+  }
+
+  await prisma.studySession.create({
+    data: {
+      userId: profile.userId,
+      subjectId: parsed.data.subjectId,
+      knowledgePointId: parsed.data.knowledgePointId ?? null,
+      durationMinutes: parsed.data.durationMinutes,
+      description: parsed.data.description ?? null,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/study");
+  return { success: true as const };
+}
+
 export const getWeeklyStudyStats = cache(async (): Promise<WeeklyStudyItem[]> => {
   const { profile } = await getUserProfile();
   const monday = startOfWeek(new Date());

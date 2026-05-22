@@ -10,18 +10,20 @@ export function StudyRecordForm({
   subjectId,
   knowledgePoints,
   defaultKpId,
+  autoStart,
   saveAction,
 }: {
   subjectId: string;
   knowledgePoints: { id: string; name: string }[];
   defaultKpId?: string;
+  autoStart?: boolean;
   saveAction: (formData: FormData) => Promise<void>;
 }) {
   const [minutes, setMinutes] = useState<number | null>(null);
   const [kpId, setKpId] = useState(defaultKpId ?? "");
 
   if (minutes === null) {
-    return <StudyTimer onFinish={setMinutes} />;
+    return <StudyTimer onFinish={setMinutes} autoStart={autoStart} />;
   }
 
   return (

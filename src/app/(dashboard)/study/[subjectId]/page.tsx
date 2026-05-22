@@ -38,12 +38,12 @@ export default async function SubjectStudyPage({
         <div>
           <h1 className="text-2xl font-bold">{subject.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            点击知识点，将联网搜索并打开 B 站相关学习视频
+            点击知识点将打开 B 站视频并自动开始计时，学完后在本页点击「结束并保存」
           </p>
         </div>
       </div>
 
-      <Link href={`/study/${subject.id}/record`}>
+      <Link href={`/study/${subject.id}/record?autoStart=1`}>
         <Button
           variant="outline"
           className="rounded-2xl border-primary/30 hover:bg-primary/10"
@@ -63,6 +63,8 @@ export default async function SubjectStudyPage({
         )}
         <SubjectKnowledgePoints
           subjectId={subject.id}
+          subjectName={subject.name}
+          subjectIcon={subject.icon}
           knowledgePoints={subject.knowledgePoints}
         />
       </div>
