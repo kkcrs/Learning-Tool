@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { completeProfile } from "@/server/actions/auth";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
