@@ -9,6 +9,7 @@ const links = [
   { href: "/study", label: "学习记录" },
   { href: "/quiz", label: "AI 自测" },
   { href: "/plan", label: "学习计划" },
+  { href: "/github-trends", label: "GitHub趋势分析" },
 ];
 
 export function Sidebar() {
