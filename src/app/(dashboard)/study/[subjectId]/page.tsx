@@ -38,7 +38,7 @@ export default async function SubjectStudyPage({
         <div>
           <h1 className="text-2xl font-bold">{subject.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            点击知识点将打开 B 站视频并自动开始计时，学完后在本页点击「结束并保存」
+            点击知识点搜索视频，准备好后请按底部提示再点一次打开 B 站；打开后开始计时
           </p>
         </div>
       </div>

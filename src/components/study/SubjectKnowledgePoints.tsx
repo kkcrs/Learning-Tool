@@ -3,6 +3,8 @@
 import { KnowledgePointLink } from "@/components/study/KnowledgePointLink";
 import { KnowledgePointVideoProvider } from "@/components/study/knowledge-point-video-context";
 import { StudyTimerProvider } from "@/components/study/study-timer-context";
+import { VideoReadyPrompt } from "@/components/study/VideoReadyPrompt";
+import { VideoSearchOverlay } from "@/components/study/VideoSearchOverlay";
 import { VideoStudyTimerBar } from "@/components/study/VideoStudyTimerBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -72,12 +74,14 @@ export function SubjectKnowledgePoints({
       subjectIcon={subjectIcon}
     >
       <KnowledgePointVideoProvider>
-        <div className="pb-28">
+        <div className="pb-36">
           <KnowledgePointCards
             subjectId={subjectId}
             knowledgePoints={knowledgePoints}
           />
         </div>
+        <VideoSearchOverlay />
+        <VideoReadyPrompt />
         <VideoStudyTimerBar />
       </KnowledgePointVideoProvider>
     </StudyTimerProvider>

@@ -4,7 +4,9 @@ import {
   bilibiliSearchUrl,
   isAllowedVideoUrl,
   isDirectBilibiliVideoUrl,
+  normalizeBilibiliVideoUrl,
   pickFirstVideoUrl,
+  searchBilibiliVideoByKeyword,
   searchLearningVideos,
   type VideoSearchResult,
 } from "@/lib/web-search";
@@ -51,9 +53,16 @@ async function pickBestBilibiliVideo(
   candidates: { title: string; url: string }[],
   context: string
 ): Promise<{ url: string; title: string } | null> {
-  const allowed = candidates.filter((c) => isAllowedVideoUrl(c.url));
-  if (allowed.length === 0) return null;
-  if (allowed.length === 1) return allowed[0];
+  const direct = candidates
+    .filter((c) => isAllowedVideoUrl(c.url))
+    .map((c) => ({
+      title: c.title,
+      url: normalizeBilibiliVideoUrl(c.url),
+    }))
+    .filter((c) => isDirectBilibiliVideoUrl(c.url));
+
+  if (direct.length === 0) return null;
+  if (direct.length === 1) return direct[0];
 
   assertDeepSeekConfigured();
   try {
@@ -65,26 +74,65 @@ async function pickBestBilibiliVideo(
         {
           role: "system",
           content:
-            '从下列 B 站搜索结果中为小学生挑选最合适的一条教学视频。只输出 JSON：{ "url": "bilibili.com 完整链接", "title": "视频标题" }。',
+            '从下列 B 站视频链接中为小学生挑选最合适的一条。必须选择含 /video/BV 或 /video/av 的播放页链接，不要选搜索页。只输出 JSON：{ "url": "完整播放页链接", "title": "视频标题" }。',
         },
         {
           role: "user",
-          content: `学习主题：${context}\n\n候选：\n${JSON.stringify(allowed.slice(0, 6))}`,
+          content: `学习主题：${context}\n\n候选：\n${JSON.stringify(direct.slice(0, 6))}`,
         },
       ],
     });
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw) as { url?: string; title?: string };
     if (parsed.url && isAllowedVideoUrl(parsed.url)) {
-      return {
-        url: parsed.url,
-        title: parsed.title || "B站学习视频",
-      };
+      const url = normalizeBilibiliVideoUrl(parsed.url);
+      if (isDirectBilibiliVideoUrl(url)) {
+        return {
+          url,
+          title: parsed.title || "B站学习视频",
+        };
+      }
     }
   } catch {
     /* 解析失败则用规则选取 */
   }
-  return pickFirstVideoUrl(allowed);
+  return pickFirstVideoUrl(direct);
+}
+
+async function resolveDirectVideo(
+  keyword: string,
+  context: string,
+  webResults: { title: string; url: string }[]
+): Promise<VideoSearchResult | null> {
+  if (webResults.length > 0) {
+    const picked = await pickBestBilibiliVideo(webResults, context);
+    if (picked) {
+      return {
+        url: picked.url,
+        title: picked.title,
+        source: "bilibili-video",
+      };
+    }
+    const first = pickFirstVideoUrl(webResults);
+    if (first) {
+      return {
+        url: first.url,
+        title: first.title,
+        source: "bilibili-video",
+      };
+    }
+  }
+
+  const fromApi = await searchBilibiliVideoByKeyword(keyword);
+  if (fromApi) {
+    return {
+      url: fromApi.url,
+      title: fromApi.title,
+      source: "bilibili-video",
+    };
+  }
+
+  return null;
 }
 
 export const findLearningVideo = cache(
@@ -99,29 +147,9 @@ export const findLearningVideo = cache(
     const context = `${buildKeyword(params)} 教学视频 讲解`;
 
     const webResults = await searchLearningVideos(context);
+    const direct = await resolveDirectVideo(keyword, context, webResults);
 
-    if (webResults.length > 0) {
-      const picked = await pickBestBilibiliVideo(webResults, context);
-      if (picked) {
-        return {
-          url: picked.url,
-          title: picked.title,
-          source: isDirectBilibiliVideoUrl(picked.url)
-            ? "bilibili-video"
-            : "bilibili-search",
-        };
-      }
-      const first = pickFirstVideoUrl(webResults);
-      if (first) {
-        return {
-          url: first.url,
-          title: first.title,
-          source: isDirectBilibiliVideoUrl(first.url)
-            ? "bilibili-video"
-            : "bilibili-search",
-        };
-      }
-    }
+    if (direct) return direct;
 
     return {
       url: bilibiliSearchUrl(keyword),

@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getUserProfile } from "@/lib/auth";
 import { studySessionSchema } from "@/lib/validators";
-import { bilibiliSearchUrl, isAllowedVideoUrl } from "@/lib/web-search";
+import {
+  bilibiliSearchUrl,
+  isAllowedVideoUrl,
+  isDirectBilibiliVideoUrl,
+  normalizeBilibiliVideoUrl,
+  searchBilibiliVideoByKeyword,
+} from "@/lib/web-search";
 import { findLearningVideo } from "@/server/ai/search-learning-video";
 import type { SubjectDistributionItem, WeeklyStudyItem } from "@/types";
 
@@ -239,17 +245,27 @@ export async function openKnowledgePointVideo(params: {
       profile.grade
     );
 
-    let url = video.url;
+    const keyword = `${kp.subject.name} ${kp.parent?.name ?? ""} ${kp.name}`.trim();
+    let url = normalizeBilibiliVideoUrl(video.url);
+
     if (!isAllowedVideoUrl(url)) {
-      const keyword = `${kp.subject.name} ${kp.parent?.name ?? ""} ${kp.name}`.trim();
       url = bilibiliSearchUrl(keyword);
+    } else if (!isDirectBilibiliVideoUrl(url)) {
+      const direct = await searchBilibiliVideoByKeyword(keyword);
+      if (direct) {
+        url = direct.url;
+      } else {
+        url = bilibiliSearchUrl(keyword);
+      }
     }
 
     return {
       success: true as const,
       url,
       title: video.title,
-      source: video.source,
+      source: isDirectBilibiliVideoUrl(url)
+        ? "bilibili-video"
+        : "bilibili-search",
     };
   } catch (e) {
     console.error("[openKnowledgePointVideo]", e);
