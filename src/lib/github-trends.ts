@@ -21,7 +21,7 @@ export type GithubGrowthRepo = {
   url: string;
 };
 
-/** 编程 / AI 提效 / Agent 领域（openclaw、MCP、Copilot 等） */
+/** 编程 / AI 提效 / Agent 领域（openclaw、MCP、Copilot 等）*/
 const AI_DEV_KEYWORDS = [
   "ai",
   "llm",
