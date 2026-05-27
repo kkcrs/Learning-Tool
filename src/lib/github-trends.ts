@@ -164,16 +164,16 @@ async function searchRepositoriesMerged(
   return [...merged.values()]
     .filter((r) => matchesAiDevDomain(r.fullName, r.description))
     .sort((a, b) => b.stars - a.stars)
-    .slice(0, 30);
+    .slice(0, 15);
 }
 
-/** AI 编程 / Agent 领域 Star 总数 Top 30 */
-export async function fetchGithubTop30(): Promise<GithubTopRepo[]> {
+/** AI 编程 / Agent 领域 Star 总数 Top 15 */
+export async function fetchGithubTop15(): Promise<GithubTopRepo[]> {
   return searchRepositoriesMerged();
 }
 
 /** 同请求内去重，供多个 Suspense 区块并行复用 */
-export const getGithubTop30 = cache(fetchGithubTop30);
+export const getGithubTop15 = cache(fetchGithubTop15);
 
 function periodSinceDate(period: GithubTrendPeriod): string {
   const since = new Date();
@@ -191,7 +191,7 @@ async function fetchGithubGrowthBySearch(
 
   const repos = await searchRepositoriesMerged(`pushed:>${iso}`, 40);
 
-  return repos.slice(0, 30).map((item) => ({
+  return repos.slice(0, 15).map((item) => ({
     fullName: item.fullName,
     stars: item.stars,
     starsGained: 0,
@@ -255,7 +255,7 @@ async function scrapeGithubTrendingFiltered(
     });
   }
 
-  return results.sort((a, b) => b.starsGained - a.starsGained).slice(0, 30);
+  return results.sort((a, b) => b.starsGained - a.starsGained).slice(0, 15);
 }
 
 async function enrichGrowthWithTotalStars(
@@ -321,7 +321,7 @@ export async function fetchGithubTrendingGrowth(
     return b.stars - a.stars;
   });
 
-  return enrichGrowthWithTotalStars(sorted.slice(0, 30));
+  return enrichGrowthWithTotalStars(sorted.slice(0, 15));
 }
 
 export const getGithubTrendingGrowth = cache(fetchGithubTrendingGrowth);

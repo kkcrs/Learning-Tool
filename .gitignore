@@ -38,3 +38,7 @@ next-env.d.ts
 
 # AI 生成的种子缓存（可本地保留，不提交）
 /prisma/data/*.json
+
+# codegraph
+.codegraph
+.aider*

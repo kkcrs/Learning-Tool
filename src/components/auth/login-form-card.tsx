@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useFormStatus } from "react-dom";
 import {
   ArrowRight,
   Eye,
@@ -14,14 +14,14 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import { login } from "@/server/actions/auth";
+import { encryptForServer } from "@/lib/crypto";
+import { loginSecure } from "@/server/actions/auth";
 import { ResendEmailForm } from "@/components/auth/ResendEmailForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
+function SubmitButton({ pending }: { pending: boolean }) {
   return (
     <Button
       type="submit"
@@ -51,14 +51,59 @@ type LoginFormCardProps = {
 };
 
 export function LoginFormCard({
-  error,
-  info,
-  email,
+  error: initialError,
+  info: initialInfo,
+  email: initialEmail,
   unconfirmed,
 }: LoginFormCardProps) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const showResend = unconfirmed === "1";
+  const [error, setError] = useState(initialError);
+  const [info, setInfo] = useState(initialInfo);
+  const [pending, setPending] = useState(false);
+  const [showResend, setShowResend] = useState(unconfirmed === "1");
+  const [currentEmail, setCurrentEmail] = useState(initialEmail ?? "");
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(undefined);
+    setInfo(undefined);
+    setPending(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string)?.trim();
+    const password = formData.get("password") as string;
+
+    if (!email || !password || password.length < 6) {
+      setError("邮箱或密码格式不正确");
+      setPending(false);
+      return;
+    }
+
+    try {
+      // Encrypt password with RSA public key — only the server can decrypt
+      const encryptedPassword = await encryptForServer(password);
+      const result = await loginSecure({ email, encryptedPassword });
+
+      if ("error" in result) {
+        setError(result.error);
+        if ("unconfirmed" in result && result.unconfirmed) {
+          setShowResend(true);
+          setCurrentEmail(email);
+        }
+        setPending(false);
+        return;
+      }
+
+      // Auth succeeded — cookies set by server action, navigate
+      router.refresh();
+      router.push(result.redirect);
+    } catch {
+      setError("网络异常，请稍后重试");
+      setPending(false);
+    }
+  }
 
   return (
     <motion.div
@@ -102,7 +147,7 @@ export function LoginFormCard({
           <p className="text-muted-foreground">登录开始今天的学习冒险</p>
         </motion.div>
 
-        <form action={login} className="relative z-10 space-y-5">
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">
               邮箱地址
@@ -118,7 +163,8 @@ export function LoginFormCard({
                 name="email"
                 type="email"
                 required
-                defaultValue={email}
+                autoComplete="email"
+                defaultValue={currentEmail}
                 placeholder="your@email.com"
                 onFocus={() => setFocusedField("email")}
                 onBlur={() => setFocusedField(null)}
@@ -144,6 +190,7 @@ export function LoginFormCard({
                 name="password"
                 type={showPassword ? "text" : "password"}
                 required
+                autoComplete="current-password"
                 placeholder="输入你的密码"
                 onFocus={() => setFocusedField("password")}
                 onBlur={() => setFocusedField(null)}
@@ -172,10 +219,10 @@ export function LoginFormCard({
             </span>
           </div>
 
-          <SubmitButton />
+          <SubmitButton pending={pending} />
         </form>
 
-        {showResend && <ResendEmailForm defaultEmail={email} />}
+        {showResend && <ResendEmailForm defaultEmail={currentEmail} />}
 
         <div className="relative z-10 my-6 flex items-center gap-4">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />

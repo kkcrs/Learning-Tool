@@ -1,6 +1,6 @@
 import {
   buildTop10ForAnalysis,
-  getGithubTop30,
+  getGithubTop15,
   getGithubTrendingGrowth,
   type GithubTrendPeriod,
 } from "@/lib/github-trends";
@@ -15,7 +15,7 @@ export async function GithubTrendsAnalysisSection({
 }) {
   const periodText = period === "weekly" ? "近一周" : "近一月";
   const [top30, growth] = await Promise.all([
-    getGithubTop30(),
+    getGithubTop15(),
     getGithubTrendingGrowth(period),
   ]);
 
